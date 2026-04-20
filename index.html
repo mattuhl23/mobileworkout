@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>GAINS — Workout Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #D4A017;
+            --accent: #A67C00;
+            --success: #4A7C3F;
+            --energy: #FF8C00;
+            --bg: #080F07;
+            --card-bg: #0D1A0B;
+            --card-mid: #111E0F;
+            --card-light: #162114;
+            --text: #E0CA8A;
+            --text-light: #7A9169;
+            --border: rgba(212, 160, 23, 0.22);
+            --border-green: rgba(74, 124, 63, 0.3);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Barlow', sans-serif;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 10% 30%, rgba(74, 124, 63, 0.06) 0%, transparent 55%),
+                radial-gradient(ellipse at 90% 70%, rgba(212, 160, 23, 0.04) 0%, transparent 50%);
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            padding: 18px 18px 14px;
+            background: linear-gradient(180deg, #060D05 0%, #0D1A0B 100%);
+            border-bottom: 1px solid rgba(212, 160, 23, 0.35);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(212,160,23,0.6) 50%, transparent 100%);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            font-weight: 400;
+            color: #D4A017;
+            letter-spacing: 4px;
+            text-shadow: 0 0 25px rgba(212, 160, 23, 0.35);
+        }
+
+        .week-badge {
+            background: rgba(212, 160, 23, 0.1);
+            border: 1px solid rgba(212, 160, 23, 0.45);
+            border-radius: 3px;
+            padding: 5px 12px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #D4A017;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-mini {
+            background: rgba(212, 160, 23, 0.07);
+            border: 1px solid rgba(212, 160, 23, 0.18);
+            border-radius: 4px;
+            padding: 10px 8px;
+            text-align: center;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .stat-mini:nth-child(2) { animation-delay: 0.3s; }
+        .stat-mini:nth-child(3) { animation-delay: 0.6s; }
+
+        .stat-mini-label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 9px;
+            color: rgba(212, 160, 23, 0.65);
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .stat-mini-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px;
+            font-weight: 400;
+            color: #D4A017;
+            letter-spacing: 1px;
+        }
+
+        /* ── TAB BAR ── */
+        .tab-bar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            padding: 10px;
+            background: #0A1408;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            padding: 9px 4px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(212, 160, 23, 0.15);
+            border-radius: 4px;
+            color: var(--text-light);
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: rgba(212, 160, 23, 0.18);
+            border-color: rgba(212, 160, 23, 0.6);
+            color: #D4A017;
+            box-shadow: 0 0 12px rgba(212, 160, 23, 0.15);
+        }
+
+        .tab-btn:active { transform: scale(0.94); }
+
+        /* ── SCROLL ── */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .main-content::-webkit-scrollbar { width: 4px; }
+        .main-content::-webkit-scrollbar-track { background: transparent; }
+        .main-content::-webkit-scrollbar-thumb {
+            background: rgba(212, 160, 23, 0.25);
+            border-radius: 2px;
+        }
+
+        .content-wrapper { padding: 8px; }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ── DAY CARDS ── */
+        .days-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-bottom: 100px;
+        }
+
+        .day-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+            animation: slideUp 0.4s ease backwards;
+        }
+
+        .day-card:nth-child(1) { animation-delay: 0.05s; }
+        .day-card:nth-child(2) { animation-delay: 0.1s; }
+        .day-card:nth-child(3) { animation-delay: 0.15s; }
+
+        .day-card:active { transform: scale(0.985); }
+
+        .day-card.completed {
+            border-left: 3px solid #4A7C3F;
+            border-color: rgba(74, 124, 63, 0.5);
+            background: linear-gradient(135deg, #0D1A0B 0%, #101C0E 100%);
+        }
+
+        .day-header {
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: linear-gradient(135deg, #0F1C0D 0%, #131F11 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .day-info h2 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 1px;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+
+        .day-info p {
+            font-size: 11px;
+            color: var(--text-light);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .day-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-sm {
+            padding: 7px 11px;
+            background: rgba(212, 160, 23, 0.12);
+            border: 1px solid rgba(212, 160, 23, 0.35);
+            color: #D4A017;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-sm:active { transform: scale(0.93); }
+
+        .day-toggle {
+            width: 52px;
+            height: 28px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .day-toggle.active {
+            background: rgba(74, 124, 63, 0.35);
+            border-color: rgba(74, 124, 63, 0.7);
+            box-shadow: 0 0 12px rgba(74, 124, 63, 0.3);
+        }
+
+        .toggle-circle {
+            width: 22px;
+            height: 22px;
+            background: #3A3A3A;
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #4A7C3F;
+        }
+
+        .day-toggle.active .toggle-circle {
+            transform: translateX(24px);
+            background: #4A7C3F;
+            color: white;
+        }
+
+        .day-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .day-card.expanded .day-content { max-height: 1800px; }
+
+        .content-inner {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--card-bg);
+        }
+
+        .section-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #D4A017;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            padding-left: 2px;
+            border-left: 2px solid rgba(212, 160, 23, 0.5);
+            padding-left: 6px;
+        }
+
+        .exercise-block {
+            background: var(--card-mid);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 8px;
+            transition: all 0.2s;
+        }
+
+        .exercise-block:active {
+            border-color: rgba(212, 160, 23, 0.5);
+        }
+
+        .exercise-label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 11px;
+            color: #D4A017;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .exercise-description {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .progression-hint {
+            background: rgba(212, 160, 23, 0.08);
+            border-left: 3px solid #D4A017;
+            padding: 6px 8px;
+            border-radius: 3px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 12px;
+            color: #D4A017;
+            margin-bottom: 6px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .input-group.full { grid-template-columns: 1fr; }
+
+        input, textarea, select {
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(212, 160, 23, 0.2);
+            border-radius: 4px;
+            padding: 9px 10px;
+            color: var(--text);
+            font-family: 'Barlow', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            -webkit-appearance: none;
+            appearance: none;
+            transition: all 0.2s;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] { -moz-appearance: textfield; }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(122, 145, 105, 0.5);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: rgba(212, 160, 23, 0.6);
+            background: rgba(212, 160, 23, 0.06);
+            box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.08);
+        }
+
+        select option {
+            background: #0D1A0B;
+            color: var(--text);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 50px;
+            font-size: 12px;
+        }
+
+        .rpe-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+
+        .rpe-btn {
+            padding: 9px 4px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(212, 160, 23, 0.2);
+            color: var(--text-light);
+            border-radius: 4px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.25s ease;
+        }
+
+        .rpe-btn.selected {
+            background: rgba(212, 160, 23, 0.2);
+            border-color: rgba(212, 160, 23, 0.7);
+            color: #D4A017;
+            box-shadow: 0 0 10px rgba(212, 160, 23, 0.2);
+        }
+
+        .quick-complete {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .quick-complete-btn {
+            background: linear-gradient(135deg, #2D5A27 0%, #1E3D1A 100%);
+            border: 1px solid rgba(74, 124, 63, 0.6);
+            color: #90C87A;
+            padding: 13px 28px;
+            border-radius: 5px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4), 0 0 20px rgba(74, 124, 63, 0.1);
+            text-transform: uppercase;
+        }
+
+        .quick-complete-btn:active { transform: scale(0.96); }
+
+        /* ── ANALYTICS ── */
+        .analytics-view { padding-bottom: 100px; }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-top: 2px solid rgba(212, 160, 23, 0.5);
+        }
+
+        .chart-card h3 {
+            font-family: 'Barlow Condensed', sans-serif;
+            color: #D4A017;
+            margin-bottom: 14px;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 260px;
+            margin-bottom: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: rgba(212, 160, 23, 0.07);
+            border: 1px solid rgba(212, 160, 23, 0.2);
+            border-radius: 5px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card-label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 11px;
+            color: rgba(212, 160, 23, 0.7);
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 1.5px;
+        }
+
+        .stat-card-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            color: #D4A017;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        /* ── ACHIEVEMENTS ── */
+        .achievements-view { padding-bottom: 100px; }
+
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .achievement-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-top: 2px solid rgba(212, 160, 23, 0.3);
+            transition: all 0.3s;
+        }
+
+        .achievement-card.unlocked {
+            background: linear-gradient(135deg, #0F1C0D 0%, #142010 100%);
+            border-top-color: #4A7C3F;
+            border-color: rgba(74, 124, 63, 0.4);
+            box-shadow: 0 4px 20px rgba(74, 124, 63, 0.12);
+        }
+
+        .achievement-card.locked {
+            opacity: 0.45;
+        }
+
+        .achievement-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .achievement-name {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .achievement-desc {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .achievement-progress {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 11px;
+            color: #D4A017;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* ── SUMMARY ── */
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border-top: 2px solid rgba(212, 160, 23, 0.5);
+        }
+
+        .summary-card h3 {
+            font-family: 'Barlow Condensed', sans-serif;
+            color: #D4A017;
+            margin-bottom: 10px;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .summary-item {
+            font-size: 13px;
+            color: var(--text-light);
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(212, 160, 23, 0.1);
+            font-weight: 500;
+        }
+
+        .summary-item:last-child { border-bottom: none; }
+
+        .summary-stat {
+            font-family: 'Bebas Neue', sans-serif;
+            font-weight: 400;
+            color: #D4A017;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        /* ── BOTTOM BAR ── */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(8,15,7,0) 0%, rgba(8,15,7,0.97) 25%);
+            padding: 12px 14px 16px;
+            z-index: 100;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .bottom-bar-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-export {
+            background: rgba(212, 160, 23, 0.12);
+            border: 1px solid rgba(212, 160, 23, 0.5);
+            color: #D4A017;
+            padding: 13px 10px;
+            border-radius: 5px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            transition: all 0.25s;
+        }
+
+        .btn-sync {
+            background: rgba(74, 124, 63, 0.15);
+            border: 1px solid rgba(74, 124, 63, 0.5);
+            color: #90C87A;
+            padding: 13px 10px;
+            border-radius: 5px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            transition: all 0.25s;
+        }
+
+        .btn-export:active, .btn-sync:active { transform: scale(0.95); }
+
+        .sync-status {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 5px;
+            min-height: 14px;
+            color: var(--text-light);
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .sync-status.success { color: #90C87A; }
+        .sync-status.error { color: #C0392B; }
+
+        .key-link {
+            text-align: center;
+            font-size: 10px;
+            color: rgba(212,160,23,0.4);
+            margin-top: 3px;
+            cursor: pointer;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        .key-link:active { color: #D4A017; }
+
+        /* ── API KEY MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #0D1A0B;
+            border: 1px solid rgba(212, 160, 23, 0.5);
+            border-radius: 8px;
+            padding: 24px 20px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(212,160,23,0.05);
+        }
+
+        .modal-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            color: #D4A017;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .modal-sub {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .modal-sub a {
+            color: #D4A017;
+            text-decoration: none;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(212,160,23,0.35);
+            border-radius: 5px;
+            padding: 11px 12px;
+            color: var(--text);
+            font-family: 'Barlow', sans-serif;
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: rgba(212,160,23,0.7);
+            box-shadow: 0 0 0 3px rgba(212,160,23,0.08);
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .modal-btn-cancel {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-light);
+            padding: 11px;
+            border-radius: 5px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .modal-btn-save {
+            background: rgba(212,160,23,0.15);
+            border: 1px solid rgba(212,160,23,0.55);
+            color: #D4A017;
+            padding: 11px;
+            border-radius: 5px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        /* ── WEEK CONTROLS ── */
+        .week-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .week-btn {
+            background: rgba(212,160,23,0.1);
+            border: 1px solid rgba(212,160,23,0.3);
+            color: #D4A017;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50%       { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Fallback copy modal -->
+    <div class="modal-overlay" id="apiKeyModal">
+        <div class="modal-box">
+            <div class="modal-title">📋 COPY & PASTE</div>
+            <div class="modal-sub">
+                Clipboard unavailable. <strong>Select all text below</strong>, copy it, then paste it into Claude chat to sync to Notion.
+            </div>
+            <textarea class="modal-input" id="apiKeyInput" style="min-height:120px;font-size:10px;font-family:monospace;" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn-cancel" onclick="closeApiKeyModal()">Done</button>
+                <button class="modal-btn-save" onclick="document.getElementById('apiKeyInput').select()">Select All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="header">
+            <div class="header-top">
+                <h1>💪 GAINS</h1>
+                <div class="week-controls">
+                    <button class="week-btn" onclick="changeWeek(-1)">‹</button>
+                    <div class="week-badge">Week <span id="currentWeek">1</span></div>
+                    <button class="week-btn" onclick="changeWeek(1)">›</button>
+                </div>
+            </div>
+            <div class="stats-row">
+                <div class="stat-mini">
+                    <div class="stat-mini-label">✓ Done</div>
+                    <div class="stat-mini-value" id="completedCount">0</div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-label">🔥 Streak</div>
+                    <div class="stat-mini-value" id="streakCount">0</div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-label">📊 Rate</div>
+                    <div class="stat-mini-value" id="rateCount">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('log')">📝</button>
+            <button class="tab-btn" onclick="switchTab('analytics')">📊</button>
+            <button class="tab-btn" onclick="switchTab('guides')">📖</button>
+            <button class="tab-btn" onclick="switchTab('achievements')">🏆</button>
+            <button class="tab-btn" onclick="switchTab('summary')">📈</button>
+        </div>
+
+        <div class="main-content" id="mainContent">
+            <div class="content-wrapper">
+                <div id="log" class="view active">
+                    <div class="days-container" id="daysContainer"></div>
+                </div>
+
+                <div id="analytics" class="view">
+                    <div class="analytics-view" id="analyticsContainer"></div>
+                </div>
+
+                <div id="achievements" class="view">
+                    <div class="achievements-view" id="achievementsContainer"></div>
+                </div>
+
+                <div id="guides" class="view">
+                    <div id="guidesContainer" style="padding-bottom: 100px;"></div>
+                </div>
+
+                <div id="achievements" class="view">
+                    <div class="achievements-view" id="achievementsContainer"></div>
+                </div>
+
+                <div id="summary" class="view">
+                    <div id="summaryContainer" style="padding-bottom: 100px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="bottom-bar-buttons">
+                <button class="btn-sync" onclick="syncToNotion()">📋 Copy for Claude</button>
+                <button class="btn-export" onclick="generateWeeklySummary()">📊 Weekly Report</button>
+            </div>
+            <div class="sync-status" id="syncStatus"></div>
+            <div class="key-link">after copying, paste into Claude chat to sync →</div>
+        </div>
+    </div>
+
+    <script>
+        const DAYS = [
+            { id: 'monday', name: 'Monday', emoji: '🏋️', title: 'Upper Body' },
+            { id: 'wednesday', name: 'Wednesday', emoji: '🏃', title: 'Cardio & Core' },
+            { id: 'friday', name: 'Friday', emoji: '💪', title: 'Lower Body' }
+        ];
+
+        const EXERCISES = {
+            monday: [
+                { name: 'Dumbbell Bench Press', field: 'bench', sets: 3, reps: '8-10', rest: 90 },
+                { name: 'Machine Lat Pulldown', field: 'latpull', sets: 3, reps: '10-12', rest: 60 },
+                { name: 'Dumbbell Shoulder Press', field: 'shoulder', sets: 3, reps: '8-10', rest: 90 },
+                { name: 'Machine Row', field: 'machinerow', sets: 3, reps: '10', rest: 60 },
+                { name: 'Dumbbell Bicep Curls', field: 'biceps', sets: 3, reps: '12', rest: 45 },
+                { name: 'Cable Tricep Pushdown', field: 'tricep', sets: 3, reps: '12', rest: 45 }
+            ],
+            wednesday: [
+                { name: 'Bicycle Crunches', field: 'bicycle', sets: 2, reps: '20', rest: 30 },
+                { name: 'Dead Bug', field: 'deadbug', sets: 2, reps: '12 each side', rest: 30 },
+                { name: 'Plank Hold', field: 'plank', sets: 2, reps: '30-45 sec', rest: 30 }
+            ],
+            friday: [
+                { name: 'Machine Leg Press', field: 'legpress', sets: 3, reps: '10-12', rest: 90 },
+                { name: 'Machine Leg Curl', field: 'legcurl', sets: 3, reps: '12', rest: 60 },
+                { name: 'Dumbbell Goblet Squats', field: 'goblet', sets: 3, reps: '12', rest: 90 },
+                { name: 'Machine Hip Abductor', field: 'abductor', sets: 3, reps: '12', rest: 60 },
+                { name: 'Dumbbell Lunges', field: 'lunges', sets: 3, reps: '10 each', rest: 60 },
+                { name: 'Cable Woodchops', field: 'woodchop', sets: 2, reps: '10 each', rest: 45 }
+            ]
+        };
+
+        const FORM_GUIDES = {
+            bench: {
+                name: 'Dumbbell Bench Press',
+                steps: [
+                    'Lie flat on bench, feet on floor',
+                    'Hold dumbbells at chest level, elbows at 45°',
+                    'Press dumbbells up and slightly together',
+                    'Pause at top (1 second)',
+                    'Lower with control back to chest',
+                    'Full range of motion, don\'t bounce'
+                ],
+                tips: 'Keep shoulders packed. Elbows should not flare out too wide.'
+            },
+            latpull: {
+                name: 'Machine Lat Pulldown',
+                steps: [
+                    'Sit upright, grip bar slightly wider than shoulders',
+                    'Feet flat on floor',
+                    'Pull bar down to upper chest',
+                    'Squeeze shoulder blades together',
+                    'Control the weight back up',
+                    'Full stretch at top, no shrugging'
+                ],
+                tips: 'Focus on pulling elbows down, not pulling with arms. Slow and controlled.'
+            },
+            shoulder: {
+                name: 'Dumbbell Shoulder Press',
+                steps: [
+                    'Sit upright or stand, dumbbells at shoulder height',
+                    'Palms facing forward',
+                    'Press dumbbells straight up',
+                    'Slight inward angle at top, don\'t lock elbows',
+                    'Lower with control to shoulders',
+                    'Repeat with full range of motion'
+                ],
+                tips: 'Engage core. Don\'t arch your back excessively. Keep chest up.'
+            },
+            machinerow: {
+                name: 'Machine Row',
+                steps: [
+                    'Sit with chest against pad',
+                    'Grip handles at shoulder width',
+                    'Pull handles toward your torso',
+                    'Squeeze shoulder blades together',
+                    'Control the weight back to starting position',
+                    'Keep a slight bend in your elbows'
+                ],
+                tips: 'Lead with your elbows, not your hands. Full range of motion.'
+            },
+            biceps: {
+                name: 'Dumbbell Bicep Curls',
+                steps: [
+                    'Stand with feet shoulder-width apart',
+                    'Hold dumbbells at your sides, arms extended',
+                    'Curl dumbbells up toward shoulders',
+                    'Keep elbows stationary at your sides',
+                    'Lower with control back to starting position',
+                    'Avoid swinging the weight'
+                ],
+                tips: 'No momentum. Squeeze at the top. Control the descent.'
+            },
+            tricep: {
+                name: 'Cable Tricep Pushdown',
+                steps: [
+                    'Stand facing cable machine, feet shoulder-width apart',
+                    'Grab rope handle with hands shoulder-width apart',
+                    'Elbows bent at 90°, tucked at your sides',
+                    'Push rope down until arms are fully extended',
+                    'Control the weight back up to starting position',
+                    'Keep elbows stationary throughout'
+                ],
+                tips: 'Isolate the triceps. Don\'t let elbows move. Squeeze at bottom.'
+            },
+            legpress: {
+                name: 'Machine Leg Press',
+                steps: [
+                    'Sit with back and head on pad',
+                    'Feet on platform, shoulder-width apart',
+                    'Toes pointed slightly outward',
+                    'Press the platform away until legs are nearly straight',
+                    'Do not lock knees at top',
+                    'Lower with control, knees to 90°'
+                ],
+                tips: 'Keep knees in line with toes. Don\'t go too deep (90° is enough). Control the negative.'
+            },
+            legcurl: {
+                name: 'Machine Leg Curl',
+                steps: [
+                    'Lie face down on the machine',
+                    'Place legs under the pad',
+                    'Hands can grip the handles for stability',
+                    'Curl legs up toward your glutes',
+                    'Squeeze hamstrings at the top',
+                    'Lower with control back to start'
+                ],
+                tips: 'Slow and controlled. Squeeze at the top. Full range of motion.'
+            },
+            goblet: {
+                name: 'Dumbbell Goblet Squats',
+                steps: [
+                    'Hold dumbbell vertically at chest',
+                    'Feet shoulder-width apart',
+                    'Lower hips back and down like sitting in a chair',
+                    'Keep chest up, weight in heels',
+                    'Go to comfortable depth (usually below parallel)',
+                    'Stand back up, squeeze glutes at top'
+                ],
+                tips: 'This is a full-body exercise. Keep tension throughout. Control the weight.'
+            },
+            abductor: {
+                name: 'Machine Hip Abductor',
+                steps: [
+                    'Sit upright on machine',
+                    'Place outer thighs against pads',
+                    'Push legs apart against the resistance',
+                    'Go as far as comfortable',
+                    'Control the weight back to starting position',
+                    'Keep your torso upright'
+                ],
+                tips: 'Isolate the glute medius. No leaning. Smooth, controlled movements.'
+            },
+            lunges: {
+                name: 'Dumbbell Lunges',
+                steps: [
+                    'Stand holding dumbbells at your sides',
+                    'Step forward with one leg',
+                    'Lower your hips until back knee nearly touches ground',
+                    'Front knee should be directly over ankle',
+                    'Push back to starting position',
+                    'Alternate legs'
+                ],
+                tips: 'Keep torso upright. Equal weight in both legs. Controlled descent.'
+            },
+            woodchop: {
+                name: 'Cable Woodchops',
+                steps: [
+                    'Stand perpendicular to cable machine',
+                    'Cable set to mid-height',
+                    'Grip handle with both hands',
+                    'Rotate torso, pulling cable diagonally across body',
+                    'Extend arms as you rotate',
+                    'Control back to starting position'
+                ],
+                tips: 'Engage your core. Slow and controlled. Full range of motion.'
+            },
+            bicycle: {
+                name: 'Bicycle Crunches',
+                steps: [
+                    'Lie on your back with knees bent',
+                    'Place hands behind your head (don\'t pull)',
+                    'Bring left elbow toward right knee',
+                    'Extend left leg out',
+                    'Return to center',
+                    'Alternate sides in a pedaling motion'
+                ],
+                tips: 'Keep neck neutral. Focus on the contraction in your abs. Slow and controlled.'
+            },
+            deadbug: {
+                name: 'Dead Bug',
+                steps: [
+                    'Lie on your back with arms extended to ceiling',
+                    'Bend knees to 90°, shins parallel to ground',
+                    'Lower left arm overhead while extending right leg',
+                    'Return to starting position',
+                    'Alternate sides',
+                    'Keep lower back against ground'
+                ],
+                tips: 'Press your lower back into the floor. Control the movement. Breathe steadily.'
+            },
+            plank: {
+                name: 'Plank Hold',
+                steps: [
+                    'Get into push-up position on forearms',
+                    'Elbows directly under shoulders',
+                    'Keep body in straight line from head to heels',
+                    'Engage core and glutes',
+                    'Hold position without sagging',
+                    'Breathe steadily throughout'
+                ],
+                tips: 'Straight line from head to heels. Engage core. Don\'t let hips sag or pike up.'
+            }
+        };
+
+        const ACHIEVEMENTS = [
+            { id: 'first-workout', name: 'First Step', icon: '🎯', desc: 'Complete your first workout', check: (data) => data.totalCompleted >= 1 },
+            { id: 'week-one', name: 'Week One Done', icon: '📅', desc: 'Complete all 3 workouts in a week', check: (data) => data.currentWeekCompleted === 3 },
+            { id: 'three-streak', name: 'On Fire', icon: '🔥', desc: 'Get a 3-week streak', check: (data) => data.streak >= 3 },
+            { id: 'gym-warrior', name: 'Gym Warrior', icon: '⚔️', desc: 'Complete 10 workouts', check: (data) => data.totalCompleted >= 10 },
+            { id: 'bench-100', name: 'Century Club', icon: '💯', desc: 'Bench 100+ lbs', check: (data) => data.maxBench >= 100 },
+            { id: 'sleeping-well', name: 'Rest Master', icon: '😴', desc: 'Log 8+ hours sleep 5 times', check: (data) => data.sleepCount >= 5 },
+            { id: 'high-energy', name: 'Beast Mode', icon: '💪', desc: 'Log RPE 4+ three times', check: (data) => data.highRPECount >= 3 },
+            { id: 'month-strong', name: 'One Month', icon: '📈', desc: 'Train for 4+ weeks', check: (data) => data.weeksActive >= 4 }
+        ];
+
+        let currentWeek = 1;
+        let currentTab = 'log';
+
+        function initializeApp() {
+            currentWeek = parseInt(localStorage.getItem('currentWeek')) || 1;
+            document.getElementById('currentWeek').textContent = currentWeek;
+            renderLogView();
+            updateStats();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tab === 'analytics') renderAnalyticsView();
+            if (tab === 'guides') renderGuidesView();
+            if (tab === 'achievements') renderAchievementsView();
+            if (tab === 'summary') renderSummaryView();
+        }
+
+        function renderLogView() {
+            const daysHtml = DAYS.map(day => createDayCard(day)).join('');
+            document.getElementById('daysContainer').innerHTML = daysHtml;
+
+            document.querySelectorAll('.day-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    if (!e.target.closest('.btn-sm')) {
+                        e.currentTarget.closest('.day-card').classList.toggle('expanded');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.day-toggle').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const dayId = toggle.dataset.dayId;
+                    toggleDay(dayId);
+                });
+            });
+
+            document.querySelectorAll('input, textarea, select').forEach(input => {
+                input.addEventListener('change', () => {
+                    const dayId = input.dataset.dayId;
+                    saveDay(dayId);
+                });
+                input.addEventListener('input', () => {
+                    const dayId = input.dataset.dayId;
+                    saveDay(dayId);
+                });
+            });
+
+            document.querySelectorAll('.rpe-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const group = e.target.closest('.rpe-selector');
+                    group.querySelectorAll('.rpe-btn').forEach(b => b.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    const dayId = e.target.dataset.dayId;
+                    saveDay(dayId);
+                });
+            });
+        }
+
+        function createDayCard(day) {
+            const dayData = getDayData(day.id);
+            const isCompleted = dayData?.completed || false;
+            
+            let exercisesHtml = '';
+
+            if (day.id === 'monday' || day.id === 'friday') {
+                const exercises = EXERCISES[day.id];
+                
+                exercisesHtml += '<div class="section-title">💪 Exercises</div>';
+                
+                exercises.forEach(ex => {
+                    const lastWeekData = getDayData(day.id, currentWeek - 1);
+                    const lastWeight = lastWeekData?.[ex.field + '-weight'];
+                    const suggestedWeight = lastWeight ? Math.ceil(parseInt(lastWeight) + 2.5) : '';
+                    
+                    exercisesHtml += `
+                        <div class="exercise-block">
+                            <div class="exercise-label">${ex.name}</div>
+                            <div class="exercise-description">${ex.sets} x ${ex.reps} | Rest ${ex.rest}s</div>
+                            ${suggestedWeight ? `<div class="progression-hint">Last: ${lastWeight} lbs → Try: ${suggestedWeight} lbs</div>` : ''}
+                            <div class="input-group">
+                                <input type="number" placeholder="Weight" data-day-id="${day.id}" data-field="${ex.field}-weight" value="${dayData?.[ex.field + '-weight'] || ''}" />
+                                <input type="number" placeholder="Reps" data-day-id="${day.id}" data-field="${ex.field}-reps" value="${dayData?.[ex.field + '-reps'] || ''}" />
+                            </div>
+                        </div>
+                    `;
+                });
+
+                exercisesHtml += '<div class="section-title">⚡ Energy & Recovery</div>';
+                exercisesHtml += `
+                    <div class="exercise-block">
+                        <div class="exercise-label">How Did You Feel? (RPE 1-5)</div>
+                        <div class="rpe-selector">
+                            ${[1,2,3,4,5].map(n => `<button class="rpe-btn ${dayData?.rpe == n ? 'selected' : ''}" data-day-id="${day.id}" data-field="rpe">${n}</button>`).join('')}
+                        </div>
+                        <div class="exercise-description" style="margin-top: 8px; text-align: center;">
+                            ${dayData?.rpe ? (dayData.rpe <= 2 ? '😴 Easy' : dayData.rpe <= 3 ? '💪 Moderate' : dayData.rpe <= 4 ? '🔥 Hard' : '💥 All Out') : 'Rate effort'}
+                        </div>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">😴 Sleep Last Night</div>
+                        <div class="input-group full">
+                            <input type="number" placeholder="Hours" data-day-id="${day.id}" data-field="sleep" value="${dayData?.sleep || ''}" min="0" max="12" step="0.5" />
+                        </div>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">📝 Notes</div>
+                        <textarea data-day-id="${day.id}" data-field="notes" placeholder="Form notes? Energy level?">${dayData?.notes || ''}</textarea>
+                    </div>
+                `;
+            } else if (day.id === 'wednesday') {
+                exercisesHtml += `
+                    <div class="section-title">🏃 Cardio Session</div>
+                    <div class="exercise-block">
+                        <div class="exercise-label">Type</div>
+                        <select data-day-id="wednesday" data-field="cardio-type">
+                            <option value="">Choose one...</option>
+                            <option value="treadmill" ${dayData?.['cardio-type'] === 'treadmill' ? 'selected' : ''}>🏃 Treadmill</option>
+                            <option value="bike" ${dayData?.['cardio-type'] === 'bike' ? 'selected' : ''}>🚴 Stationary Bike</option>
+                            <option value="rowing" ${dayData?.['cardio-type'] === 'rowing' ? 'selected' : ''}>🚣 Rowing Machine</option>
+                            <option value="elliptical" ${dayData?.['cardio-type'] === 'elliptical' ? 'selected' : ''}>⏭️ Elliptical</option>
+                        </select>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">Duration & Intensity</div>
+                        <div class="input-group">
+                            <input type="number" placeholder="Minutes" data-day-id="wednesday" data-field="cardio-duration" value="${dayData?.['cardio-duration'] || ''}" />
+                            <input type="text" placeholder="Steady/Intervals" data-day-id="wednesday" data-field="cardio-intensity" value="${dayData?.['cardio-intensity'] || ''}" />
+                        </div>
+                    </div>
+
+                    <div class="section-title">💪 Core Circuit (2 rounds)</div>
+                    <div class="exercise-block">
+                        <div class="exercise-label">Bicycle Crunches</div>
+                        <div class="exercise-description">20 reps | Rest 30s between rounds</div>
+                        <div class="input-group">
+                            <input type="number" placeholder="Reps completed" data-day-id="wednesday" data-field="bicycle-reps" value="${dayData?.['bicycle-reps'] || ''}" />
+                            <input type="text" placeholder="Notes" data-day-id="wednesday" data-field="bicycle-notes" value="${dayData?.['bicycle-notes'] || ''}" />
+                        </div>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">Dead Bug</div>
+                        <div class="exercise-description">12 each side | Rest 30s between rounds</div>
+                        <div class="input-group">
+                            <input type="number" placeholder="Reps completed" data-day-id="wednesday" data-field="deadbug-reps" value="${dayData?.['deadbug-reps'] || ''}" />
+                            <input type="text" placeholder="Notes" data-day-id="wednesday" data-field="deadbug-notes" value="${dayData?.['deadbug-notes'] || ''}" />
+                        </div>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">Plank Hold</div>
+                        <div class="exercise-description">30-45 sec | Rest 30s between rounds</div>
+                        <div class="input-group">
+                            <input type="number" placeholder="Seconds" data-day-id="wednesday" data-field="plank-seconds" value="${dayData?.['plank-seconds'] || ''}" />
+                            <input type="text" placeholder="Notes" data-day-id="wednesday" data-field="plank-notes" value="${dayData?.['plank-notes'] || ''}" />
+                        </div>
+                    </div>
+
+                    <div class="section-title">⚡ Energy & Recovery</div>
+                    <div class="exercise-block">
+                        <div class="exercise-label">How Did You Feel? (RPE 1-5)</div>
+                        <div class="rpe-selector">
+                            ${[1,2,3,4,5].map(n => `<button class="rpe-btn ${dayData?.rpe == n ? 'selected' : ''}" data-day-id="wednesday" data-field="rpe">${n}</button>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">😴 Sleep Last Night</div>
+                        <div class="input-group full">
+                            <input type="number" placeholder="Hours" data-day-id="wednesday" data-field="sleep" value="${dayData?.sleep || ''}" min="0" max="12" step="0.5" />
+                        </div>
+                    </div>
+
+                    <div class="exercise-block">
+                        <div class="exercise-label">📝 Notes</div>
+                        <textarea data-day-id="wednesday" data-field="notes" placeholder="Heart rate? How did you feel?">${dayData?.notes || ''}</textarea>
+                    </div>
+                `;
+            }
+
+            exercisesHtml += `
+                <div class="quick-complete">
+                    <button class="quick-complete-btn" onclick="quickComplete('${day.id}')">✓ Mark Complete</button>
+                </div>
+            `;
+
+            return `
+                <div class="day-card ${isCompleted ? 'completed' : ''}">
+                    <div class="day-header">
+                        <div class="day-info">
+                            <h2>${day.emoji} ${day.name}</h2>
+                            <p>${day.title} • 45 min</p>
+                        </div>
+                        <div class="day-actions">
+                            <button class="btn-sm" data-day-id="${day.id}" onclick="showFormGuides('${day.id}')">📖</button>
+                            <div class="day-toggle ${isCompleted ? 'active' : ''}" data-day-id="${day.id}">
+                                <div class="toggle-circle">${isCompleted ? '✓' : ''}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="day-content">
+                        <div class="content-inner">
+                            ${exercisesHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getDayData(dayId, week = null) {
+            const w = week !== null ? week : currentWeek;
+            const weekData = JSON.parse(localStorage.getItem(`week-${w}`)) || {};
+            return weekData[dayId] || {};
+        }
+
+        function saveDay(dayId) {
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            const dayData = weekData[dayId] || {};
+
+            document.querySelectorAll(`input[data-day-id="${dayId}"], textarea[data-day-id="${dayId}"], select[data-day-id="${dayId}"]`).forEach(input => {
+                const field = input.dataset.field;
+                dayData[field] = input.value;
+            });
+
+            weekData[dayId] = dayData;
+            localStorage.setItem(`week-${currentWeek}`, JSON.stringify(weekData));
+            updateStats();
+        }
+
+        function toggleDay(dayId) {
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            const dayData = weekData[dayId] || {};
+            dayData.completed = !dayData.completed;
+            weekData[dayId] = dayData;
+            localStorage.setItem(`week-${currentWeek}`, JSON.stringify(weekData));
+            
+            renderLogView();
+            updateStats();
+        }
+
+        function quickComplete(dayId) {
+            saveDay(dayId);
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            const dayData = weekData[dayId] || {};
+            dayData.completed = true;
+            weekData[dayId] = dayData;
+            localStorage.setItem(`week-${currentWeek}`, JSON.stringify(weekData));
+            
+            renderLogView();
+            updateStats();
+        }
+
+        function renderAnalyticsView() {
+            let html = `
+                <div class="chart-card">
+                    <h3>📊 Bench Press Progress</h3>
+                    <div class="chart-container">
+                        <canvas id="benchChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>💪 Leg Press Progress</h3>
+                    <div class="chart-container">
+                        <canvas id="legChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>⚡ Weekly Stats</h3>
+                    <div class="stats-grid" id="weeklyStats"></div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>😴 Sleep Impact</h3>
+                    <div class="chart-container">
+                        <canvas id="sleepChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('analyticsContainer').innerHTML = html;
+
+            setTimeout(() => {
+                const allWeeks = getAllWeeks();
+                const benchWeights = allWeeks.map(w => {
+                    const data = getDayData('monday', w);
+                    return data?.['bench-weight'] ? parseInt(data['bench-weight']) : null;
+                }).filter(v => v !== null);
+
+                const legWeights = allWeeks.map(w => {
+                    const data = getDayData('friday', w);
+                    return data?.['legpress-weight'] ? parseInt(data['legpress-weight']) : null;
+                }).filter(v => v !== null);
+
+                if (benchWeights.length > 0) {
+                    new Chart(document.getElementById('benchChart'), {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({length: benchWeights.length}, (_, i) => `W${allWeeks[allWeeks.length - benchWeights.length + i]}`),
+                            datasets: [{
+                                label: 'Weight (lbs)',
+                                data: benchWeights,
+                                borderColor: '#D4A017',
+                                backgroundColor: 'rgba(212, 160, 23, 0.08)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 3,
+                                pointRadius: 6,
+                                pointBackgroundColor: '#D4A017'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: false, ticks: { color: '#7A9169' }, grid: { color: 'rgba(212,160,23,0.08)' } }, x: { ticks: { color: '#7A9169' }, grid: { color: 'rgba(212,160,23,0.05)' } } }
+                        }
+                    });
+                }
+
+                if (legWeights.length > 0) {
+                    new Chart(document.getElementById('legChart'), {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({length: legWeights.length}, (_, i) => `W${allWeeks[allWeeks.length - legWeights.length + i]}`),
+                            datasets: [{
+                                label: 'Weight (lbs)',
+                                data: legWeights,
+                                borderColor: '#4A7C3F',
+                                backgroundColor: 'rgba(74, 124, 63, 0.08)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 3,
+                                pointRadius: 6,
+                                pointBackgroundColor: '#4A7C3F'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: false, ticks: { color: '#7A9169' }, grid: { color: 'rgba(212,160,23,0.08)' } }, x: { ticks: { color: '#7A9169' }, grid: { color: 'rgba(212,160,23,0.05)' } } }
+                        }
+                    });
+                }
+
+                // Weekly stats
+                const currentWeekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+                const completed = Object.values(currentWeekData).filter(d => d.completed).length;
+                const avgRPE = (Object.values(currentWeekData).filter(d => d.rpe).reduce((a, b) => a + parseInt(b.rpe), 0) / 3).toFixed(1);
+                const avgSleep = (Object.values(currentWeekData).filter(d => d.sleep).reduce((a, b) => a + parseFloat(b.sleep), 0) / 3).toFixed(1);
+
+                document.getElementById('weeklyStats').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-card-label">✓ Completed</div>
+                        <div class="stat-card-value">${completed}/3</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">⚡ Avg Energy</div>
+                        <div class="stat-card-value">${avgRPE}/5</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">😴 Avg Sleep</div>
+                        <div class="stat-card-value">${avgSleep}h</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">🔥 Streak</div>
+                        <div class="stat-card-value">${calculateStreak()}</div>
+                    </div>
+                `;
+
+                // Sleep correlation chart
+                const sleepData = Object.values(currentWeekData).filter(d => d.sleep && d.rpe);
+                if (sleepData.length > 0) {
+                    new Chart(document.getElementById('sleepChart'), {
+                        type: 'scatter',
+                        data: {
+                            datasets: [{
+                                label: 'Sleep vs Energy',
+                                data: sleepData.map(d => ({
+                                    x: parseFloat(d.sleep),
+                                    y: parseInt(d.rpe)
+                                })),
+                                borderColor: '#D4A017',
+                                backgroundColor: 'rgba(212, 160, 23, 0.5)',
+                                pointRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { title: { display: true, text: 'Sleep (hours)' } },
+                                y: { title: { display: true, text: 'Energy (1-5)' } }
+                            }
+                        }
+                    });
+                }
+            }, 100);
+        }
+
+        function renderAchievementsView() {
+            const allData = getAllData();
+            
+            let html = '<div class="achievement-grid">';
+            
+            ACHIEVEMENTS.forEach(achievement => {
+                const unlocked = achievement.check(allData);
+                html += `
+                    <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-name">${achievement.name}</div>
+                        <div class="achievement-desc">${achievement.desc}</div>
+                        <div class="achievement-progress">${unlocked ? '✓ UNLOCKED' : 'LOCKED'}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            document.getElementById('achievementsContainer').innerHTML = html;
+        }
+
+        function getAllData() {
+            const weeks = [];
+            for (let i = 1; i <= 12; i++) {
+                const data = localStorage.getItem(`week-${i}`);
+                if (data) weeks.push(i);
+            }
+
+            let totalCompleted = 0;
+            let maxBench = 0;
+            let sleepCount = 0;
+            let highRPECount = 0;
+
+            weeks.forEach(week => {
+                const weekData = JSON.parse(localStorage.getItem(`week-${week}`)) || {};
+                Object.values(weekData).forEach(day => {
+                    if (day.completed) totalCompleted++;
+                    if (day['bench-weight'] && parseInt(day['bench-weight']) > maxBench) {
+                        maxBench = parseInt(day['bench-weight']);
+                    }
+                    if (day.sleep && parseFloat(day.sleep) >= 8) sleepCount++;
+                    if (day.rpe && parseInt(day.rpe) >= 4) highRPECount++;
+                });
+            });
+
+            const currentWeekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            const currentWeekCompleted = Object.values(currentWeekData).filter(d => d.completed).length;
+
+            return {
+                totalCompleted,
+                currentWeekCompleted,
+                streak: calculateStreak(),
+                maxBench,
+                sleepCount,
+                highRPECount,
+                weeksActive: weeks.length
+            };
+        }
+
+        function renderSummaryView() {
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            const lastWeekData = JSON.parse(localStorage.getItem(`week-${currentWeek - 1}`)) || {};
+            
+            let html = `
+                <div class="summary-card">
+                    <h3>📊 Week ${currentWeek} Summary</h3>
+                    <div class="summary-item">Workouts Completed: <span class="summary-stat">${Object.values(weekData).filter(d => d.completed).length}/3</span></div>
+                    <div class="summary-item">Completion Rate: <span class="summary-stat">${Math.round((Object.values(weekData).filter(d => d.completed).length / 3) * 100)}%</span></div>
+                </div>
+            `;
+
+            html += '<div class="summary-card"><h3>💪 Strength Progress</h3>';
+            
+            ['monday', 'friday'].forEach(dayId => {
+                const dayData = weekData[dayId];
+                const lastDayData = lastWeekData[dayId];
+                
+                if (dayData?.completed) {
+                    const exercises = EXERCISES[dayId];
+                    exercises.forEach(ex => {
+                        const weight = dayData[ex.field + '-weight'];
+                        const reps = dayData[ex.field + '-reps'];
+                        const lastWeight = lastDayData?.[ex.field + '-weight'];
+                        
+                        if (weight) {
+                            const change = lastWeight ? parseInt(weight) - parseInt(lastWeight) : 0;
+                            const changeText = change > 0 ? `+${change} lbs 🔥` : change < 0 ? `${change} lbs` : 'Same 💪';
+                            
+                            html += `<div class="summary-item">${ex.name}: ${weight} lbs x ${reps} (${changeText})</div>`;
+                        }
+                    });
+                }
+            });
+
+            html += '</div>';
+
+            html += '<div class="summary-card"><h3>⚡ Energy & Recovery</h3>';
+            
+            let totalRPE = 0, rpeCount = 0;
+            let totalSleep = 0, sleepCount = 0;
+            
+            Object.values(weekData).forEach(day => {
+                if (day.rpe) { totalRPE += parseInt(day.rpe); rpeCount++; }
+                if (day.sleep) { totalSleep += parseFloat(day.sleep); sleepCount++; }
+            });
+
+            if (rpeCount > 0) html += `<div class="summary-item">Average Effort: <span class="summary-stat">${(totalRPE / rpeCount).toFixed(1)}/5</span></div>`;
+            if (sleepCount > 0) html += `<div class="summary-item">Average Sleep: <span class="summary-stat">${(totalSleep / sleepCount).toFixed(1)} hrs</span></div>`;
+            
+            html += '</div>';
+
+            document.getElementById('summaryContainer').innerHTML = html;
+        }
+
+        function getAllWeeks() {
+            const weeks = [];
+            for (let i = 1; i <= 12; i++) {
+                const data = localStorage.getItem(`week-${i}`);
+                if (data) weeks.push(i);
+            }
+            return weeks.sort((a, b) => a - b);
+        }
+
+        function generateWeeklySummary() {
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            
+            let summary = `\n✨ WEEK ${currentWeek} WORKOUT SUMMARY ✨\n\n`;
+            summary += `Workouts Completed: ${Object.values(weekData).filter(d => d.completed).length}/3 ✓\n`;
+            summary += `Completion Rate: ${Math.round((Object.values(weekData).filter(d => d.completed).length / 3) * 100)}% 🎯\n\n`;
+
+            // Monday
+            const mondayData = weekData['monday'];
+            if (mondayData?.completed) {
+                summary += `Monday - Upper Body:\n`;
+                const mondayExercises = EXERCISES['monday'] || [];
+                mondayExercises.forEach(ex => {
+                    if (mondayData[ex.field + '-weight']) {
+                        summary += `  ${ex.name}: ${mondayData[ex.field + '-weight']} lbs x ${mondayData[ex.field + '-reps']}\n`;
+                    }
+                });
+                summary += `  Energy: ${mondayData.rpe || '—'}/5, Sleep: ${mondayData.sleep || '—'} hrs\n\n`;
+            }
+
+            // Wednesday
+            const wednesdayData = weekData['wednesday'];
+            if (wednesdayData?.completed) {
+                summary += `Wednesday - Cardio & Core:\n`;
+                summary += `  Cardio: ${wednesdayData['cardio-type'] || '—'} (${wednesdayData['cardio-duration'] || '—'} min)\n`;
+                summary += `  Core: Completed\n`;
+                summary += `  Energy: ${wednesdayData.rpe || '—'}/5, Sleep: ${wednesdayData.sleep || '—'} hrs\n\n`;
+            }
+
+            // Friday
+            const fridayData = weekData['friday'];
+            if (fridayData?.completed) {
+                summary += `Friday - Lower Body:\n`;
+                const fridayExercises = EXERCISES['friday'] || [];
+                fridayExercises.forEach(ex => {
+                    if (fridayData[ex.field + '-weight']) {
+                        summary += `  ${ex.name}: ${fridayData[ex.field + '-weight']} lbs x ${fridayData[ex.field + '-reps']}\n`;
+                    }
+                });
+                summary += `  Energy: ${fridayData.rpe || '—'}/5, Sleep: ${fridayData.sleep || '—'} hrs\n\n`;
+            }
+
+            // Show alert or display in app
+            alert(`Week ${currentWeek} Summary:\n\n${summary}`);
+        }
+
+        function updateStats() {
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            let completed = 0;
+
+            DAYS.forEach(day => {
+                if (weekData[day.id]?.completed) completed++;
+            });
+
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('streakCount').textContent = calculateStreak();
+            document.getElementById('rateCount').textContent = Math.round((completed / 3) * 100) + '%';
+        }
+
+        function calculateStreak() {
+            let streak = 0;
+            let week = currentWeek;
+            
+            while (week > 0) {
+                const weekData = JSON.parse(localStorage.getItem(`week-${week}`)) || {};
+                let weekCompleted = 0;
+                
+                DAYS.forEach(day => {
+                    if (weekData[day.id]?.completed) weekCompleted++;
+                });
+
+                if (weekCompleted === 3) {
+                    streak++;
+                    week--;
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function showFormGuides(dayId) {
+            const day = DAYS.find(d => d.id === dayId);
+            const exercises = EXERCISES[dayId];
+            
+            let html = `<div style="text-align: center; padding: 14px; background: linear-gradient(135deg, #0D1A0B 0%, #162114 100%); border: 1px solid rgba(212,160,23,0.35); border-radius: 6px; margin-bottom: 10px;">
+                <h2 style="color: #D4A017; margin-bottom: 4px; font-size: 18px; font-family: Bebas Neue, sans-serif; letter-spacing: 3px;">${day.emoji} ${day.name} Form Guides</h2>
+                <p style="color: rgba(212,160,23,0.65); font-size: 12px; letter-spacing: 0.5px;">${day.title}</p>
+            </div>`;
+            
+            exercises.forEach(ex => {
+                const guide = FORM_GUIDES[ex.field];
+                if (!guide) return;
+                
+                html += `
+                    <div style="background: #0D1A0B; border: 1px solid rgba(212,160,23,0.2); border-radius: 5px; padding: 12px; margin-bottom: 10px; border-top: 2px solid rgba(212,160,23,0.4);">
+                        <h3 style="color: #D4A017; margin-bottom: 10px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">${guide.name}</h3>
+                        <ol style="margin-left: 14px; font-size: 12px; color: #7A9169; line-height: 1.5; padding-right: 8px;">
+                            ${guide.steps.map(step => `<li style="margin-bottom: 6px;">${step}</li>`).join('')}
+                        </ol>
+                        <div style="background: rgba(212,160,23,0.07); border-left: 3px solid #D4A017; padding: 8px 10px; border-radius: 3px; margin-top: 10px; font-size: 11px; color: #D4A017; font-weight: 600; line-height: 1.4;">
+                            ⚡ <strong>Pro Tip:</strong> ${guide.tips}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('guidesContainer').innerHTML = html;
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('guides').classList.add('active');
+            
+            document.querySelector('.main-content').scrollTop = 0;
+        }
+
+        function renderGuidesView() {
+            let html = `<div style="text-align: center; padding: 14px; background: linear-gradient(135deg, #0D1A0B 0%, #162114 100%); border: 1px solid rgba(212,160,23,0.35); border-radius: 6px; margin-bottom: 10px;">
+                <h2 style="color: #D4A017; margin-bottom: 4px; font-size: 18px; font-family: Bebas Neue, sans-serif; letter-spacing: 3px;">📖 Form Guides</h2>
+                <p style="color: rgba(212,160,23,0.65); font-size: 12px; letter-spacing: 0.5px;">Click the 📖 button on any workout day to see form guides</p>
+            </div>`;
+            
+            html += `<div style="background: #0D1A0B; border: 1px solid rgba(212,160,23,0.2); border-radius: 5px; padding: 12px; margin-bottom: 10px; border-top: 2px solid rgba(212,160,23,0.4);">
+                <h3 style="color: #D4A017; margin-bottom: 8px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">How to Use</h3>
+                <p style="font-size: 12px; color: #7A9169; line-height: 1.6;">1. Go to the 📝 Log tab<br/>2. Find the day you want (Monday, Wednesday, or Friday)<br/>3. Tap the 📖 button<br/>4. View step-by-step instructions for every exercise</p>
+            </div>`;
+            
+            document.getElementById('guidesContainer').innerHTML = html;
+        }
+
+        // ─── AUTO-SAVE: Save all visible inputs every 10 seconds ───
+        setInterval(() => {
+            DAYS.forEach(day => {
+                const hasInputs = document.querySelector(`input[data-day-id="${day.id}"]`);
+                if (hasInputs) saveDay(day.id);
+            });
+        }, 10000);
+
+        // Also save before the page unloads
+        window.addEventListener('beforeunload', () => {
+            DAYS.forEach(day => saveDay(day.id));
+        });
+        window.addEventListener('pagehide', () => {
+            DAYS.forEach(day => saveDay(day.id));
+        });
+
+        // ─── WEEK NAVIGATION ───
+        function changeWeek(delta) {
+            const newWeek = Math.max(1, currentWeek + delta);
+            currentWeek = newWeek;
+            localStorage.setItem('currentWeek', currentWeek);
+            document.getElementById('currentWeek').textContent = currentWeek;
+            renderLogView();
+            updateStats();
+        }
+
+        // ─── SYNC TO CLAUDE: builds a JSON payload you paste into Claude chat ───
+        function syncToNotion() {
+            const btn = document.querySelector('.btn-sync');
+            const status = document.getElementById('syncStatus');
+
+            // Save all days first
+            DAYS.forEach(day => saveDay(day.id));
+
+            const weekData = JSON.parse(localStorage.getItem(`week-${currentWeek}`)) || {};
+            const today = new Date().toISOString().split('T')[0];
+            const rows = [];
+
+            // MONDAY
+            const mon = weekData['monday'];
+            if (mon?.completed) {
+                EXERCISES['monday'].forEach(ex => {
+                    const w = mon[ex.field + '-weight'];
+                    const r = mon[ex.field + '-reps'];
+                    if (w || r) rows.push({
+                        Name: `W${currentWeek} Mon – ${ex.name}`,
+                        Week: currentWeek, Day: 'Monday', Exercise: ex.name,
+                        Weight: w ? parseFloat(w) : null,
+                        Reps: r ? String(r) : null,
+                        RPE: mon.rpe ? parseInt(mon.rpe) : null,
+                        Sleep: mon.sleep ? parseFloat(mon.sleep) : null,
+                        Notes: mon.notes || '',
+                        Date: today
+                    });
+                });
+            }
+
+            // WEDNESDAY
+            const wed = weekData['wednesday'];
+            if (wed?.completed) {
+                if (wed['cardio-type']) rows.push({
+                    Name: `W${currentWeek} Wed – Cardio`,
+                    Week: currentWeek, Day: 'Wednesday',
+                    Exercise: `${wed['cardio-type']} – ${wed['cardio-duration'] || '?'} min`,
+                    Weight: null, Reps: wed['cardio-duration'] ? String(wed['cardio-duration']) + ' min' : null,
+                    RPE: wed.rpe ? parseInt(wed.rpe) : null,
+                    Sleep: wed.sleep ? parseFloat(wed.sleep) : null,
+                    Notes: wed.notes || '', Date: today
+                });
+                [
+                    { name: 'Bicycle Crunches', reps: wed['bicycle-reps'] },
+                    { name: 'Dead Bug', reps: wed['deadbug-reps'] },
+                    { name: 'Plank Hold', reps: wed['plank-seconds'] ? wed['plank-seconds'] + 's' : null }
+                ].forEach(c => {
+                    if (c.reps) rows.push({
+                        Name: `W${currentWeek} Wed – ${c.name}`,
+                        Week: currentWeek, Day: 'Wednesday', Exercise: c.name,
+                        Weight: null, Reps: String(c.reps),
+                        RPE: wed.rpe ? parseInt(wed.rpe) : null,
+                        Sleep: wed.sleep ? parseFloat(wed.sleep) : null,
+                        Notes: wed.notes || '', Date: today
+                    });
+                });
+            }
+
+            // FRIDAY
+            const fri = weekData['friday'];
+            if (fri?.completed) {
+                EXERCISES['friday'].forEach(ex => {
+                    const w = fri[ex.field + '-weight'];
+                    const r = fri[ex.field + '-reps'];
+                    if (w || r) rows.push({
+                        Name: `W${currentWeek} Fri – ${ex.name}`,
+                        Week: currentWeek, Day: 'Friday', Exercise: ex.name,
+                        Weight: w ? parseFloat(w) : null,
+                        Reps: r ? String(r) : null,
+                        RPE: fri.rpe ? parseInt(fri.rpe) : null,
+                        Sleep: fri.sleep ? parseFloat(fri.sleep) : null,
+                        Notes: fri.notes || '',
+                        Date: today
+                    });
+                });
+            }
+
+            if (rows.length === 0) {
+                status.textContent = '⚠️ No completed workouts to sync';
+                status.className = 'sync-status error';
+                return;
+            }
+
+            // Copy JSON to clipboard
+            const payload = JSON.stringify({ week: currentWeek, rows }, null, 2);
+            navigator.clipboard.writeText(payload).then(() => {
+                status.textContent = `✅ ${rows.length} rows copied! Paste to Claude →`;
+                status.className = 'sync-status success';
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy for Claude';
+                    status.textContent = 'Open Claude chat and paste to sync';
+                    status.className = 'sync-status';
+                }, 3000);
+            }).catch(() => {
+                // Fallback: show modal with text to copy
+                document.getElementById('apiKeyInput').value = payload;
+                document.getElementById('apiKeyModal').classList.add('visible');
+                document.getElementById('apiKeyInput').select();
+            });
+        }
+
+        // Modal repurposed as fallback copy box
+        function closeApiKeyModal() {
+            document.getElementById('apiKeyModal').classList.remove('visible');
+        }
+        function saveApiKey() { closeApiKeyModal(); }
+
+        initializeApp();
+    </script>
+</body>
+</html>
